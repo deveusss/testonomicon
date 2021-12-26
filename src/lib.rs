@@ -1,8 +1,7 @@
-
-use core::borrow::Borrow;
-use core::fmt::Debug;
-
+mod assertions;
 use colors::*;
+use std::borrow::Borrow;
+use std::fmt::Debug;
 
 #[cfg(not(test))]
 mod colors {
@@ -32,20 +31,47 @@ pub struct AssertionFailure<'a, C: 'a> {
     expected: Option<String>,
     actual: Option<String>,
 }
-
-pub trait AssertInfo<'a>{
+pub struct AssertDescription<'a> {
+    value: &'a str,
+    location: Option<String>,
+}
+pub trait AssertDescriptor<'a> {
     fn component_name(&self) -> Option<&'a str>;
     fn location(&self) -> Option<String>;
     fn description(&self) -> Option<&'a str>;
 }
+
+pub fn assert(description: Option<&str>) -> AssertDescription {
+    AssertDescription {
+        value: description.expect("Invalid assert description"),
+        location: None,
+    }
+}
+impl<'a> AssertDescription<'a> {
+    pub fn with_location(self, location: String) -> Self {
+        let mut description = self;
+
+        description.location = Some(location);
+        description
+    }
+
+    pub fn that<C>(self, component: &'a C) -> Assert<'a, C> {
+        Assert {
+            component: component,
+            component_name: None,
+            location: self.location,
+            description: Some(self.value),
+        }
+    }
+}
 impl<'a, C> Assert<'a, C> {
-    pub fn that(component: &'a C) -> Assert<'a, C> {
+    pub fn that(&self, component: &'a C) -> Assert<'a, C> {
         Assert {
             component: component,
             component_name: None,
             location: None,
             description: None,
-        }       
+        }
     }
     pub fn with_location(self, location: String) -> Self {
         let mut assert = self;
@@ -58,7 +84,7 @@ impl<'a, C> Assert<'a, C> {
         assert
     }
 }
-impl<'a, T> AssertInfo<'a> for Assert<'a, T> {
+impl<'a, T> AssertDescriptor<'a> for Assert<'a, T> {
     fn component_name(&self) -> Option<&'a str> {
         self.component_name
     }
@@ -72,7 +98,7 @@ impl<'a, T> AssertInfo<'a> for Assert<'a, T> {
     }
 }
 
-impl<'a, A: AssertInfo<'a>> AssertionFailure<'a, A> {
+impl<'a, A: AssertDescriptor<'a>> AssertionFailure<'a, A> {
     pub fn from(component: &'a A) -> AssertionFailure<'a, A> {
         AssertionFailure {
             component: component,
@@ -95,7 +121,6 @@ impl<'a, A: AssertInfo<'a>> AssertionFailure<'a, A> {
         assertion
     }
 
-   
     pub fn fail(&mut self) {
         if !self.expected.is_some() || !self.actual.is_some() {
             panic!("Invalid assertion info");
@@ -105,29 +130,27 @@ impl<'a, A: AssertInfo<'a>> AssertionFailure<'a, A> {
         let component_name = self.component_name_formatted();
         let description = self.description_formatted();
 
-        panic!("{}{}\n\t{}expected: {}\n\t but was: {}{}\n{}",
-                       description,
-                       component_name,
-                       RED,
-                       self.expected.clone().unwrap(),
-                       self.actual.clone().unwrap(),
-                       RESET,
-                       location)
+        panic!(
+            "{}{}\n\t{}expected: {}\n\t but was: {}{}\n{}",
+            description,
+            component_name,
+            RED,
+            self.expected.clone().unwrap(),
+            self.actual.clone().unwrap(),
+            RESET,
+            location
+        )
     }
-
 
     fn fail_with_message(&mut self, message: String) {
         let location = self.location_formatted();
         let component_name = self.component_name_formatted();
         let description = self.description_formatted();
 
-        panic!("{}{}\n\t{}{}{}\n{}",
-                       description,
-                       component_name,
-                       RED,
-                       message,
-                       RESET,
-                       location)
+        panic!(
+            "{}{}\n\t{}{}{}\n{}",
+            description, component_name, RED, message, RESET, location
+        )
     }
 
     fn location_formatted(&self) -> String {
@@ -153,7 +176,8 @@ impl<'a, A: AssertInfo<'a>> AssertionFailure<'a, A> {
 }
 
 impl<'a, C> Assert<'a, C>
-    where C: Debug + PartialEq
+where
+    C: Debug + PartialEq,
 {
     pub fn is_equal_to<E: Borrow<C>>(&mut self, expected: E) {
         let subject = self.component;
@@ -173,7 +197,10 @@ impl<'a, C> Assert<'a, C>
 
         if subject.eq(borrowed_expected) {
             AssertionFailure::from(self)
-                .with_expected(format!("<{:?}> to not equal <{:?}>", subject, borrowed_expected))
+                .with_expected(format!(
+                    "<{:?}> to not equal <{:?}>",
+                    subject, borrowed_expected
+                ))
                 .with_actual(format!("equal"))
                 .fail();
         }

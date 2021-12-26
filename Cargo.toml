@@ -1,8 +1,16 @@
 [package]
-name = "testo"
+name = "testonomicon"
 version = "0.1.0"
-edition = "2018"
+authors = ["deveusss <deveusss@users.noreply.github.com>"]
+license = "Apache-2.0"
+description = "Fluent test assertions"
+repository = "https://github.com/deveusss/testonomicon"
+readme = "README.md"
+keywords = ["fluentassertions","fluent", "testing", "assert", "assertions"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = ["num"]
 
 [dependencies]
+num = { version = "0.4.0", optional = true }
+
