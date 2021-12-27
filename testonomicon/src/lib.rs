@@ -31,6 +31,9 @@ pub struct AssertionFailure<'a, C: 'a> {
     expected: Option<String>,
     actual: Option<String>,
 }
+pub struct Assertion{
+    
+}
 pub struct AssertDescription<'a> {
     value: &'a str,
     location: Option<String>,
@@ -41,12 +44,28 @@ pub trait AssertDescriptor<'a> {
     fn description(&self) -> Option<&'a str>;
 }
 
-pub fn assert(description: Option<&str>) -> AssertDescription {
+pub fn assertion(description: Option<&str>) -> AssertDescription {
     AssertDescription {
         value: description.expect("Invalid assert description"),
         location: None,
     }
 }
+pub fn assert() -> Assertion {
+    Assertion {
+        
+    }
+}
+impl<'a> Assertion{
+     pub fn that<C>(self, component: &'a C) -> Assert<'a, C> {
+        Assert {
+            component: component,
+            component_name: None,
+            description: None,
+            location:None,
+        }
+    }
+}
+
 impl<'a> AssertDescription<'a> {
     pub fn with_location(self, location: String) -> Self {
         let mut description = self;
