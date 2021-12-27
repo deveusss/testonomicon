@@ -2,7 +2,8 @@
 
 use serde_json::json;
 use workspaces::prelude::*;
-
+use testonomicon::*;
+use testonomicon::assertions::{string::StrAssertions};
 use testonomicon_near::TestScope;
 const STATUS_MSG_WASM_FILEPATH: &str = "../testonomicon-near-examples/res/status_message.wasm";
 
@@ -11,17 +12,16 @@ async fn status() -> anyhow::Result<()> {
     let worker = workspaces::sandbox();
     let scope = TestScope::deploy(worker.clone(), STATUS_MSG_WASM_FILEPATH.to_owned()).await?;
 
-    let res = scope
+    let call_result = scope
         .call(
             &worker,
             "set_status",
             json!({
-                "message": "hello_world",
+                "message": "Hello From Testonomicon",
             }),
         )
         .await
         .unwrap();
-    println!("{:?}", res);
 
     let view_result = scope
         .view(
@@ -34,7 +34,7 @@ async fn status() -> anyhow::Result<()> {
         .await
         .unwrap();
 
-    println!("status: {:?}", view_result);
+   assert(Some("view")).that(&view_result).contains("Hello From Testonomicon");
 
     Ok(())
 }

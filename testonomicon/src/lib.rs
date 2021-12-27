@@ -1,4 +1,4 @@
-mod assertions;
+pub mod assertions;
 use colors::*;
 use std::borrow::Borrow;
 use std::fmt::Debug;
